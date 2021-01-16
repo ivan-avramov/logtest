@@ -6,6 +6,17 @@
 #include <iostream>
 #include <logging/json.h>
 
+#define K2FMT_STRING_IMPL(str, base)                                           \
+  [&] {                                                                     \
+    /* Use the hidden visibility as a workaround for a GCC bug (#1973). */ \
+    /* Use a macro-like name to avoid shadowing warnings. */              \
+      using char_type = fmt::remove_cvref_t<decltype(str[0])>;               \
+      return fmt::detail::compile_string_to_view<char_type>(str);          \
+  }()
+
+#define K2FMT_COMPILE(s) K2FMT_STRING_IMPL(s, fmt::compile_string)
+
+
 namespace k2 {
 enum LogLevel {
     VERBOSE,
@@ -38,7 +49,7 @@ struct fmt::formatter<k2::LogLevel> {
 
     template <typename FormatContext>
     auto format(k2::LogLevel const& level, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), k2::LogLevelNames[level]);
+        return fmt::format_to(ctx.out(), K2FMT_COMPILE("{}"), k2::LogLevelNames[level]);
     }
 };
 
@@ -111,7 +122,7 @@ inline Timestamp_ts toTimestamp_ts(const TimePoint& tp) {
 inline const char* printTime(const TimePoint& tp) {
     auto ts = toTimestamp_ts(tp);
     static thread_local char buffer[24];
-    fmt::format_to_n(buffer, sizeof(buffer), "{}", ts);
+    fmt::format_to_n(buffer, sizeof(buffer), K2FMT_COMPILE("{}"), ts);
     return buffer;
 }
 
@@ -126,7 +137,7 @@ struct fmt::formatter<k2::Timestamp_ts> {
 
     template <typename FormatContext>
     auto format(k2::Timestamp_ts const& ts, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), FMT_COMPILE("{:04}:{:02}:{:02}:{:02}.{:03}.{:03}"), ts.days, ts.hours, ts.mins, ts.secs, ts.millis, ts.micros);
+        return fmt::format_to(ctx.out(), K2FMT_COMPILE("{:04}:{:02}:{:02}:{:02}.{:03}.{:03}"), ts.days, ts.hours, ts.mins, ts.secs, ts.millis, ts.micros);
     }
 };
 
@@ -139,13 +150,13 @@ struct fmt::formatter<k2::Duration> {
 
     template <typename FormatContext>
     auto format(k2::Duration const& dur, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), "{}", k2::TimePoint{} + dur);
+        return fmt::format_to(ctx.out(), K2FMT_COMPILE("{}"), k2::TimePoint{} + dur);
     }
 };
 
 namespace std {
 void inline to_json(nlohmann::json& j, const k2::Duration& obj) {
-    j = nlohmann::json{{"duration", fmt::format("{}", obj)}};
+    j = nlohmann::json{{"duration", fmt::format(K2FMT_COMPILE("{}"), obj)}};
 }
 }
 
@@ -158,7 +169,7 @@ struct fmt::formatter<k2::TimePoint> {
 
     template <typename FormatContext>
     auto format(k2::TimePoint const& tp, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), "{}", k2::toTimestamp_ts(tp));
+        return fmt::format_to(ctx.out(), K2FMT_COMPILE("{}"), k2::toTimestamp_ts(tp));
     }
 };
 
@@ -178,7 +189,7 @@ inline std::ostream& operator<<(std::ostream& os, const k2::TimePoint& tp) {
 #define LOG_FLUSH std::flush
 
 #define DO_FLOG(level, module, fmt_str, ...)                                                            \
-    fmt::print(LOG_STREAM, FMT_STRING("{} - FMT {} - ({}) [{}: {}:{}] " fmt_str "\n"),                  \
+    fmt::print(LOG_STREAM, K2FMT_COMPILE("{} - FMT {} - ({}) [{}: {}:{}] " fmt_str "\n"),                  \
     "k2::Clock::now()", level, logger._module, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);
 
 #define LFLOG(level, logger, fmt_str, ...)                    \

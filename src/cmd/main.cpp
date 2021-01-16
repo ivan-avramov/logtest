@@ -33,7 +33,7 @@ struct fmt::formatter<Data> {
 
     template <typename FormatContext>
     auto format(Data const& d, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), FMT_COMPILE("{{\"str1\":{}, \"str2\":{}, \"int1\":{}, \"int2\":{}}}"),
+        return fmt::format_to(ctx.out(), K2FMT_COMPILE("{{\"str1\":{}, \"str2\":{}, \"int1\":{}, \"int2\":{}}}"),
             d.str1, d.str2, d.int1, d.int2);
     }
 };
