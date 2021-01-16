@@ -16,20 +16,35 @@ enum LogLevel {
     FATAL
 };
 
-extern LogLevel LOG_LEVEL;
+inline thread_local LogLevel LOG_LEVEL;
+const char* const LogLevelNames[] = {
+    "NOTSET",
+    "VERBOSE",
+    "DEBUG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL"
+};
+
 }
+
+template <>
+struct fmt::formatter<k2::LogLevel> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(k2::LogLevel const& level, FormatContext& ctx) {
+        return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), k2::LogLevelNames[level]);
+    }
+};
 
 namespace std {
     inline std::ostream& operator<<(std::ostream& os, const k2::LogLevel& level) {
-        switch (level) {
-            case k2::LogLevel::VERBOSE: return os << "VERBOSE";
-            case k2::LogLevel::DEBUG: return os << "DEBUG";
-            case k2::LogLevel::INFO: return os << "INFO";
-            case k2::LogLevel::WARN: return os << "WARN";
-            case k2::LogLevel::ERROR: return os << "ERROR";
-            case k2::LogLevel::FATAL: return os << "FATAL";
-            default: return os << "UNKNOWN";
-        }
+	return os << k2::LogLevelNames[level];
     }
 }
 
@@ -196,8 +211,13 @@ class Logger {
     Logger(const char* moduleName) : _module(moduleName) {
     }
     bool isEnabledFor(k2::LogLevel level) {
+	if (level > _override) {
+           return true;
+	}
         return level >= k2::LOG_LEVEL;
     }
+    LogLevel _override;
     std::string _module;
 };
 }  // namespace k2
+

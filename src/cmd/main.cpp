@@ -4,7 +4,7 @@
 #include <logging/log.h>
 #include <logging/json.h>
 
-k2::Logger logger("LMAIN");
+inline thread_local k2::Logger logger("LMAIN");
 
 struct Data {
     std::string str1;
@@ -48,8 +48,8 @@ inline void pin(int cpu) {
 }
 
 uint64_t dowork(uint64_t a, uint64_t i, Data& d) {
-    LSDEBUG(logger, "obj=" << d);
-    //LFDEBUG(logger, "obj={}", d);
+    //LSDEBUG(logger, "obj=" << d);
+    LFDEBUG(logger, "obj={}", d);
     return (a + i) / a;
 }
 
@@ -70,6 +70,7 @@ int main(int, char** argv) {
     pin(2);
     auto c = std::stoull(argv[1]);
     k2::LOG_LEVEL = (k2::LogLevel)std::stoi(argv[2]);
+    logger._override = (k2::LogLevel)std::stoi(argv[2]);
     LSINFO(logger, "main: " << c);
     auto st = k2::Clock::now();
     auto result = bench(c, std::string(30, argv[1][0]));
