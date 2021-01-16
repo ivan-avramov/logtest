@@ -11,6 +11,7 @@ else()
     set(K2_DEBUG_LOGGING 0)
 endif()
 
+find_package( Threads )
 add_compile_definitions(K2_DEBUG_LOGGING=${K2_DEBUG_LOGGING})
 
 include_directories(src)

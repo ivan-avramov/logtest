@@ -1,4 +1,5 @@
 #include <string>
+#include <pthread.h>
 
 #include "logging/log.h"
 k2::Logger logger("LMAIN");
@@ -16,6 +17,15 @@ k2::Logger logger("LMAIN");
 // log fmt "int - int str" to cout w   flush: 849ns/call
 // log stream "int - int str" to cout w   flush: 1795/call
 // log stream "int - int str" to cout w/o flush: 1228/call
+
+inline void pin(int cpu) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpu, &cpuset);
+    if (0 != pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset)) {
+        throw std::runtime_error("Unable to set affinity");
+    }
+}
 
 uint64_t dowork(uint64_t a, uint64_t i) {
     //LOG_DEBUG("got" << i << " -- " << a);
@@ -36,6 +46,7 @@ uint64_t bench(uint64_t a) {
 }
 
 int main(int, char** argv) {
+    pin(2);
     auto c = std::stoull(argv[1]);
     k2::LOG_LEVEL = (k2::LogLevel)std::stoi(argv[2]);
     LSINFO(logger, "main: " << c);
